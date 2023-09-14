@@ -27,17 +27,16 @@ pipeline {
         }
 
 
-        stage('Test') {
-            steps{
-                dir('services/php-progress') {
-                    script{
-                        testingApp = docker.build("${params.USER}/php-progress-test:${params.TAG}", "-f Dockerfile.test .")
-                        testingApp.run()
+        stage('Run Tests') {
+            steps {
+                dir('services/php-progress'){
+                    script {
+                        def dockerfile = "dev.Dockerfile"
+                        sh "docker build -t phpdev -f $dockerfile ."
+                        sh "docker run --rm phpdev composer run test"
                     }
                 }
             }
-            
-        }
 
 
 
