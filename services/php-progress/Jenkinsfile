@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters{
-        string(name: 'DOCKER_IMAGE', defaultValue: 'edu2199/edu-kubecamp-java', description: 'Docker image name')
+        string(name: 'DOCKER_IMAGE', defaultValue: 'edu2199/edu-kubecamp-php', description: 'Docker image name')
         string(name: 'TAG', defaultValue: 'latest', description: 'version name')
         string(name: 'CREDENTIALS', defaultValue: 'edu.dockerhub', description: 'DockerHub credentials')
     }
@@ -20,15 +20,32 @@ pipeline {
                 script {
                     def scannerHome = tool 'sonarqube_5.0'
                     withSonarQubeEnv(installationName: 'aroldev sonarqube') {
-                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-java -Dsonar.sources=./services/java-catalog -Dsonar.exclusions=**/*Test.java -Dsonar.tests=./services/java-catalog -Dsonar.test.inclusions=**/*Test.java -Dsonar.java.binaries=."
+                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-php -Dsonar.sources=./services/php-progress -Dsonar.exclusions=**/*Test.java -Dsonar.tests=./services/php-progress -Dsonar.test.inclusions=**/*Test.java -Dsonar.java.binaries=."
                     }
                 }
             }
         }
 
+
+        stage('Test') {
+            steps{
+                dir('services/php-progress') {
+                    script{
+                        testingApp = docker.build("${params.USER}/php-progress-test:${params.TAG}", "-f Dockerfile.test .")
+                        testingApp.run()
+                    }
+                }
+            }
+            
+        }
+
+
+
+
+
        stage('Build Docker Image') {
             steps {
-                dir('services/java-catalog'){
+                dir('services/php-progress'){
                     script {
                     // Construye la imagen de Docker
                         app = docker.build("${params.DOCKER_IMAGE}:${params.TAG}", "-f ./Dockerfile  .")
@@ -36,29 +53,12 @@ pipeline {
                 }
             }
         }
-    /*
-        stage('Test') {
-            steps {
-                dir('services/java-catalog'){
-                    script{
-                        def dockerfileTest ="Dockerfile.test"
-                        testApp = docker.build("${params.DOCKER_IMAGE}:test", "-f ${dockerfileTest} .")
-
-                        testApp.run()
-
-                    }
-                }
-
-
-            }
-            
-        }
-        */
+    
 
         stage('Push image') {
             steps{
 
-                dir('services/java-catalog'){
+                dir('services/php-progress'){
                     script{
                         withCredentials([usernamePassword(credentialsId: 'edu.dockerhub', passwordVariable: 'DOCKER_REGISTRY_PWD', usernameVariable: 'DOCKER_REGISTRY_USER')]) {
                             sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD}"
