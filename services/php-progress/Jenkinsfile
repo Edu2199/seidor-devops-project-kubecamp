@@ -1,72 +1,57 @@
 pipeline {
     agent any
-
-    parameters{
-        string(name: 'DOCKER_IMAGE', defaultValue: 'edu2199/edu-kubecamp-php', description: 'Docker image name')
-        string(name: 'TAG', defaultValue: 'latest', description: 'version name')
-        string(name: 'CREDENTIALS', defaultValue: 'edu.dockerhub', description: 'DockerHub credentials')
-    }
     
-
     stages {
         stage('Checkout') {
             steps {
+                // Clonar el repositorio de código
                 checkout scm
             }
         }
+        
+        stage('Build and Test') {
+            steps {
+                dir('services/php-progress') {
+                    
+                    // Construir una imagen Docker
+                    sh 'docker build -t testphp -f dev.Dockerfile .'
 
-        stage('SonarQube Analysis') {
+                    sh 'docker run --rm testphp composer run test'
+
+                }
+            }
+        }
+        
+        stage('Static Code Analysis') {
             steps {
                 script {
                     def scannerHome = tool 'sonarqube_5.0'
                     withSonarQubeEnv(installationName: 'aroldev sonarqube') {
-                         sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-php -Dsonar.sources=./services/php-progress -Dsonar.exclusions=**/*Test.java -Dsonar.tests=./services/php-progress -Dsonar.test.inclusions=**/*Test.java -Dsonar.java.binaries=."
-                    }
-                }
-            }
-        }
-
-
-        stage('Run Tests') {
-            steps {
-                dir('services/php-progress'){
-                    script {
-                        def dockerfile = "dev.Dockerfile"
-                        sh "docker build -t phpdev -f $dockerfile ."
-                        sh "docker run --rm phpdev composer run test"
-                    }
-                }
-            }
-
-
-
-
-
-       stage('Build Docker Image') {
-            steps {
-                dir('services/php-progress'){
-                    script {
-                    // Construye la imagen de Docker
-                        app = docker.build("${params.DOCKER_IMAGE}:${params.TAG}", "-f ./Dockerfile  .")
-                    }                    
-                }
-            }
-        }
-    
-
-        stage('Push image') {
-            steps{
-
-                dir('services/php-progress'){
-                    script{
-                        withCredentials([usernamePassword(credentialsId: 'edu.dockerhub', passwordVariable: 'DOCKER_REGISTRY_PWD', usernameVariable: 'DOCKER_REGISTRY_USER')]) {
-                            sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD}"
-                            app.push()
-                        }
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-php -Dsonar.sources=./services/php-progress -Dsonar.exclusions=**/*_test.php -Dsonar.tests=./services/php-progress -Dsonar.test.inclusions=**/*_test.php"
                     }
                 }
             }
         }
         
+        stage('Docker Image') {
+            steps {
+                dir('services/php-progress') {
+                    // Construir una imagen Docker
+                    sh 'docker build -t edu2199/php-progress:latest -f Dockerfile .' // Ajusta el nombre y la versión
+                }
+            }
+        }
+        
+        stage('Push to DockerHub') {
+            steps {
+                dir('services/php-progress') {
+                    // Subir la imagen a DockerHub
+                    withCredentials([usernamePassword(credentialsId: 'edu.dockerhub', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                        sh 'docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD'
+                        sh 'docker push edu2199/php-progress:latest' // Ajusta el nombre y la versión
+                    }
+                }
+            }
+        }
     }
-}
+    }
