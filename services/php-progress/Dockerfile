@@ -53,7 +53,7 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install zip
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-
+COPY composer.json /var/www/html/composer.json
 RUN composer install
 
 WORKDIR /var/www/html
