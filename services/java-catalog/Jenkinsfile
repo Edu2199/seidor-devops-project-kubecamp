@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     parameters{
-        string(name: 'DOCKER_IMAGE', defaultValue: 'edu2199/edu-kubecamp-go', description: 'Docker image name')
+        string(name: 'DOCKER_IMAGE', defaultValue: 'edu2199/edu-kubecamp-java', description: 'Docker image name')
         string(name: 'TAG', defaultValue: 'latest', description: 'version name')
         string(name: 'CREDENTIALS', defaultValue: 'edu.dockerhub', description: 'DockerHub credentials')
     }
@@ -20,7 +20,7 @@ pipeline {
                 script {
                     def scannerHome = tool 'sonarqube_5.0'
                     withSonarQubeEnv(installationName: 'aroldev sonarqube') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-go -Dsonar.sources=./services/go-auth -Dsonar.exclusions=**/*_test.go -Dsonar.tests=./services/go-auth -Dsonar.test.inclusions=**/*_test.go"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=edu-kubecamp-java -Dsonar.sources=./services/go-auth -Dsonar.exclusions=**/*_test.go -Dsonar.tests=./services/go-auth -Dsonar.test.inclusions=**/*_test.go"
                     }
                 }
             }
@@ -55,7 +55,7 @@ pipeline {
         stage('Push image') {
             steps{
 
-                dir('services/go-auth'){
+                dir('services/java-catalog'){
                     script{
                         withCredentials([usernamePassword(credentialsId: 'edu.dockerhub', passwordVariable: 'DOCKER_REGISTRY_PWD', usernameVariable: 'DOCKER_REGISTRY_USER')]) {
                             sh "docker login -u ${DOCKER_REGISTRY_USER} -p ${DOCKER_REGISTRY_PWD}"
